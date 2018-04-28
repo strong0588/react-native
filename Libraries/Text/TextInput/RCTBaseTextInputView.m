@@ -102,7 +102,17 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 {
   NSInteger eventLag = _nativeEventCount - _mostRecentEventCount;
 
-  if (eventLag == 0 && ![attributedText isEqualToAttributedString:self.backedTextInputView.attributedText]) {
+  // Remove tag attribute to ensure correct attributed string comparison.
+  NSMutableAttributedString *const backedTextInputViewTextCopy = [self.backedTextInputView.attributedText mutableCopy];
+  NSMutableAttributedString *const attributedTextCopy = [attributedText mutableCopy];
+
+  [backedTextInputViewTextCopy removeAttribute:RCTTextAttributesTagAttributeName
+                                         range:NSMakeRange(0, backedTextInputViewTextCopy.length)];
+
+  [attributedTextCopy removeAttribute:RCTTextAttributesTagAttributeName
+                                range:NSMakeRange(0, attributedTextCopy.length)];
+
+  if (eventLag == 0 && ![attributedTextCopy isEqualToAttributedString:backedTextInputViewTextCopy]) {
     UITextRange *selection = self.backedTextInputView.selectedTextRange;
     NSInteger oldTextLength = self.backedTextInputView.attributedText.string.length;
 
@@ -311,7 +321,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
 
   _nativeEventCount++;
 
-  if (_onChange) {
+  if (_onChange && backedTextInputView.markedTextRange == nil) {
     _onChange(@{
        @"text": self.attributedText.string,
        @"target": self.reactTag,
@@ -419,7 +429,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
       UIView *accessoryView = [strongSelf->_bridge.uiManager viewForNativeID:nativeID
                                                                  withRootTag:rootView.reactTag];
       if (accessoryView && [accessoryView isKindOfClass:[RCTInputAccessoryView class]]) {
-        strongSelf.backedTextInputView.inputAccessoryView = ((RCTInputAccessoryView *)accessoryView).content.inputAccessoryView;
+        strongSelf.backedTextInputView.inputAccessoryView = ((RCTInputAccessoryView *)accessoryView).inputAccessoryView;
         [strongSelf reloadInputViewsIfNecessary];
       }
     }
